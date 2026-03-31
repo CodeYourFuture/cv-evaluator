@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Your Future: CV Evaluation Tool</title>
+    <link rel="stylesheet" href="./style/main.css">
+    <link rel="icon" type="image/png" href="./images/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="./images/favicon.svg" />
+    <link rel="shortcut icon" href="./favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="./images/apple-touch-icon.png" />
+    <script type="module" src="./scripts/main.js" defer></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Code Your Future: CV Evaluation Tool</h1>
+        <p>Evaluate CVs by entering text or uploading files.</p>
+
+        <div class="privacy-warning">
+            <p><strong>Privacy warning:</strong> This tool sends CV data to an external API. If you have privacy concerns, please replace your name, phone number, email address, and so forth with fake data. You may also wish to redact any other personally identifying information. If you're still not sure, skip this step and reach out in <span style="white-space: nowrap">#cyf-profile-review</span> to request a manual review.</p>
+        </div>
+
+        <div class="demo-section">
+            
+            <!-- Mode Switcher -->
+            <div class="mode-switcher">
+                <button id="textModeBtn" class="mode-btn active">Text Input</button>
+                <button id="fileModeBtn" class="mode-btn">File Upload</button>
+            </div>
+            
+            <!-- Text Input Section -->
+            <div id="textSection" class="input-section">
+                <div class="form-group">
+                    <label for="cvText">CV Content:</label>
+                    <textarea id="cvText" placeholder="Paste your CV content here..."></textarea>
+                </div>
+            </div>
+            
+            <!-- File Upload Section -->
+            <div id="fileSection" class="input-section" style="display: none;">
+                <div class="form-group">
+                    <label for="cvFile">Upload CV (PDF or DOCX):</label>
+                    <input type="file" id="cvFile" accept=".pdf,.docx">
+                    <div id="fileInfo" class="file-info"></div>
+                </div>
+            </div>
+            
+            <!-- Form Actions -->
+            <div class="form-actions">
+                <button id="submitBtn" class="api-link">Evaluate CV</button>
+                <button id="clearBtn" class="btn-secondary">Clear</button>
+            </div>
+            
+            <!-- Loading Indicator -->
+            <div id="loadingIndicator" class="loading">
+                <div class="spinner"></div>
+                <p>Evaluating your CV...</p>
+            </div>
+            
+            <!-- Results Section -->
+            <div id="resultSection" class="result" style="display: none;">
+                <div id="resultContent"></div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
