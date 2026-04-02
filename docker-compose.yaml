@@ -1,0 +1,9 @@
+services:
+  cyf-cv-evaluator:
+    image: cyf-cv-evaluator:latest
+    restart: always
+    container_name: cyf-cv-evaluator
+    ports:
+      - 127.0.0.1:8000:8000
+    environment:
+      - 'OPENROUTER_API_KEY=your_openrouter_api_key_here'

@@ -20,7 +20,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
-from llm_evaluator import LlmEvaluator, CvEvaluation
+from .llm_evaluator import LlmEvaluator, CvEvaluation
 
 # Create a FastAPI instance for the site and another for the API
 app = FastAPI(title="CV Evaluation Tool")

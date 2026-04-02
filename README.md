@@ -1,6 +1,8 @@
 # cv-evaluator
 CV Evaluator sends a CV to an LLM for review. A CodeYourFuture project.
 
+## Local Development Instructions
+
 ### Setup
 1. Create a virtual environment:
    ```bash
@@ -24,12 +26,7 @@ CV Evaluator sends a CV to an LLM for review. A CodeYourFuture project.
 5. Update `app/llm_evaluator.yml` with your desired LLM configuration (model, reasoning level, etc.).
 
 ### Running the Application
-1. From the project root directory:
-   ```bash
-   python app/main.py
-   ```
-   
-2. Or using uvicorn directly:
+From the project root directory:
    ```bash
    uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
    ```
@@ -54,3 +51,58 @@ The application creates two FastAPI instances:
 ### Notes
 - `slowapi` is used for rate limiting, since there's LLM cost involved with each evaluation. The default limit is set to 5 requests per minute per IP address.
 - `markitdown` is used to convert uploaded CV files (PDF, DOCX) into markdown format for easier processing by the LLM.
+
+## Docker
+
+## Install Docker
+https://docs.docker.com/engine/install/ubuntu/#install-using-the-repository
+
+## Build the image
+From the root of the project, where the `Dockerfile` is located:
+
+```
+$ sudo docker build -t cyf-cv-evaluator .
+```
+
+## Run locally
+Run the local image, passing in the openrouter API key as an environment variable:
+
+```bash
+sudo docker run -ti --rm -e OPENROUTER_API_KEY=your_openrouter_api_key_here --name cyf-cv-evaluator -p 8000:8000 cyf-cv-evaluator
+```
+
+## Export the image to a file
+```bash
+sudo docker save -o ~/cyf-cv-evaluator.tar cyf-cv-evaluator:latest
+
+sudo chmod 777 ~/cyf-cv-evaluator.tar
+```
+
+# If needed, copy the image elsewhere
+```bash
+scp ~/cyf-cv-evaluator.tar user@server:/home/user
+```
+
+## If needed, remove the old cyf-cv-evaluator container and image
+```bash
+sudo docker stop cyf-cv-evaluator
+
+sudo docker rm cyf-cv-evaluator
+
+sudo docker rmi cyf-cv-evaluator
+```
+
+## Load the image elsewhere
+Load the image into docker:
+```bash
+sudo docker load -i ./cyf-cv-evaluator.tar
+
+sudo docker images
+```
+
+## Create and run a container from the image
+Copy `docker-compose.yaml` to the server, update the `OPENROUTER_API_KEY` environment variable, and run:
+
+```bash
+sudo docker compose up -d
+```
