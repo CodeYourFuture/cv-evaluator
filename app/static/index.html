@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Code Your Future: CV Evaluation Tool</title>
+    <title>CodeYourFuture: CV Evaluation Tool</title>
     <link rel="stylesheet" href="./style/main.css">
     <link rel="icon" type="image/png" href="./images/favicon-96x96.png" sizes="96x96" />
     <link rel="icon" type="image/svg+xml" href="./images/favicon.svg" />
@@ -12,15 +12,46 @@
     <script type="module" src="./scripts/main.js" defer></script>
 </head>
 <body>
+    <header class="app-header">
+        <div class="header-content">
+            <span class="header-title">CV Evaluation Tool</span>
+            <div class="auth-section">
+                <div id="authLoading" class="auth-loading">Loading...</div>
+                <div id="loggedOut" class="auth-state" style="display: none;">
+                    <a href="/api/auth/login" class="login-btn">Sign in with GitHub</a>
+                </div>
+                <div id="loggedIn" class="auth-state" style="display: none;">
+                    <img id="userAvatar" class="user-avatar" src="" alt="User avatar">
+                    <span id="userName" class="user-name"></span>
+                    <a href="/api/auth/logout" class="logout-btn">Sign out</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
     <div class="container">
-        <h1>Code Your Future: CV Evaluation Tool</h1>
+        <h1>CodeYourFuture: CV Evaluation Tool</h1>
         <p>Evaluate CVs by entering text or uploading files.</p>
 
-        <div class="privacy-warning">
-            <p><strong>Privacy warning:</strong> This tool sends CV data to an external API. If you have privacy concerns, please replace your name, phone number, email address, and so forth with fake data. You may also wish to redact any other personally identifying information. If you're still not sure, skip this step and reach out in <span style="white-space: nowrap">#cyf-profile-review</span> to request a manual review.</p>
+        <!-- Auth Error Message -->
+        <div id="authError" class="auth-error" style="display: none;">
+            <p id="authErrorMessage"></p>
+            <button id="dismissError" class="btn-dismiss">Dismiss</button>
         </div>
 
-        <div class="demo-section">
+        <!-- Login Required Message -->
+        <div id="loginRequired" class="login-required" style="display: none;">
+            <h3>Authentication Required</h3>
+            <p>You must be a member of the <strong>CodeYourFuture</strong> organization to use this tool.</p>
+            <a href="/api/auth/login" class="login-btn-large">Sign in with GitHub</a>
+        </div>
+
+        <div id="mainContent" style="display: none;">
+            <div class="privacy-warning">
+                <p><strong>Privacy warning:</strong> This tool sends CV data to an external API. If you have privacy concerns, please replace your name, phone number, email address, and so forth with fake data. You may also wish to redact any other personally identifying information. If you're still not sure, skip this step and reach out in <span style="white-space: nowrap">#cyf-profile-review</span> to request a manual review.</p>
+            </div>
+
+            <div class="demo-section">
             
             <!-- Mode Switcher -->
             <div class="mode-switcher">
@@ -61,6 +92,7 @@
             <div id="resultSection" class="result" style="display: none;">
                 <div id="resultContent"></div>
             </div>
+        </div>
         </div>
     </div>
 </body>

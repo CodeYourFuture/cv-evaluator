@@ -7,3 +7,14 @@ services:
       - 127.0.0.1:8000:8000
     environment:
       - 'OPENROUTER_API_KEY=your_openrouter_api_key_here'
+      # GitHub OAuth - required for authentication
+      - 'GITHUB_APP_CLIENT_ID=your_github_app_client_id'
+      - 'GITHUB_APP_CLIENT_SECRET=your_github_app_client_secret'
+      # Session security - generate with: python -c "import secrets; print(secrets.token_urlsafe(32))"
+      - 'SESSION_SECRET_KEY=your_session_secret_key_here'
+      # Organization restriction
+      - 'ALLOWED_ORG=CodeYourFuture'
+      # Application URL (used for OAuth callback)
+      - 'APP_URL=https://example.com'
+      # Environment (production enables secure cookies and restricted CORS)
+      - 'ENVIRONMENT=production'

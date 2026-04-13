@@ -343,3 +343,160 @@ button:hover {
     overflow-x: auto;
     margin-top: 10px;
 }
+
+/* ===== Authentication Styles ===== */
+
+.app-header {
+    background-color: #EA4847;
+    color: white;
+    padding: 10px 20px;
+    margin-bottom: 20px;
+}
+
+.header-content {
+    max-width: 800px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.header-title {
+    font-weight: bold;
+    font-size: 1.1em;
+}
+
+.auth-section {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.auth-loading {
+    font-size: 0.9em;
+    opacity: 0.8;
+}
+
+.auth-state {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.user-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid white;
+}
+
+.user-name {
+    font-size: 0.9em;
+}
+
+.login-btn,
+.logout-btn {
+    background-color: white;
+    color: #EA4847;
+    padding: 6px 14px;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 0.9em;
+    font-weight: bold;
+    transition: background-color 0.2s;
+}
+
+.login-btn:hover,
+.logout-btn:hover {
+    background-color: #f0f0f0;
+}
+
+.logout-btn {
+    background-color: transparent;
+    color: white;
+    border: 1px solid white;
+}
+
+.logout-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Auth error message */
+.auth-error {
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+    padding: 15px 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.auth-error p {
+    margin: 0;
+}
+
+.btn-dismiss {
+    background-color: #721c24;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85em;
+}
+
+.btn-dismiss:hover {
+    background-color: #5a161c;
+}
+
+/* Login required message */
+.login-required {
+    background-color: #F6F3F3;
+    border: 2px solid #EA4847;
+    border-radius: 8px;
+    padding: 40px;
+    text-align: center;
+    margin: 40px 0;
+}
+
+.login-required h3 {
+    margin-top: 0;
+    color: #EA4847;
+}
+
+.login-required p {
+    color: #666;
+    margin-bottom: 20px;
+}
+
+.login-btn-large {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #24292e;
+    color: white;
+    padding: 12px 24px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 1em;
+    font-weight: bold;
+    transition: background-color 0.2s;
+}
+
+.login-btn-large:hover {
+    background-color: #1a1e22;
+}
+
+.login-btn-large::before {
+    content: "";
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    margin-right: 10px;
+    background-image: url("../images/github-mark-white.svg");
+    background-size: contain;
+    background-repeat: no-repeat;
+}

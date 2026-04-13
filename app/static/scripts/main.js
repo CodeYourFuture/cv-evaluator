@@ -4,6 +4,13 @@
  */
 
 import CvClient from "./cv-client.js";
+import {
+  checkAuth,
+  updateAuthUI,
+  checkAuthError,
+  initAuthErrorDismiss,
+  isAuthenticated,
+} from "./auth.js";
 
 // Application state
 const cvClient = new CvClient();
@@ -89,6 +96,12 @@ async function handleSubmit() {
     return;
   }
 
+  // Check auth before submitting
+  if (!isAuthenticated()) {
+    showError("You must be logged in to evaluate CVs. Please sign in with GitHub.");
+    return;
+  }
+
   isSubmitting = true;
   updateSubmitButton();
   showLoading();
@@ -107,7 +120,15 @@ async function handleSubmit() {
 
     showSuccess(result);
   } catch (error) {
-    showError(error.message);
+    // Handle 401 errors specially
+    if (error.message.includes("401") || error.message.toLowerCase().includes("authentication")) {
+      showError("Your session has expired. Please sign in again.");
+      // Re-check auth state to update UI
+      const user = await checkAuth();
+      updateAuthUI(user);
+    } else {
+      showError(error.message);
+    }
   } finally {
     isSubmitting = false;
     updateSubmitButton();
@@ -246,5 +267,19 @@ cvTextArea.addEventListener("keydown", (e) => {
   }
 });
 
-// Initialize
-switchMode("text");
+// Initialize authentication and UI
+async function initApp() {
+  // Check for OAuth errors in URL
+  checkAuthError();
+  initAuthErrorDismiss();
+
+  // Check authentication status
+  const user = await checkAuth();
+  updateAuthUI(user);
+
+  // Initialize mode
+  switchMode("text");
+}
+
+// Start the app
+initApp();
