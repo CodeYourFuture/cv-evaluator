@@ -128,19 +128,19 @@ This application uses GitHub OAuth for authentication. Only members of the confi
 - CORS is restricted to `APP_URL` in production
 - Organization membership is verified during login
 
-## Docker
+## Manual Docker Deployment Instructions
 
-## Install Docker
+### Install Docker
 https://docs.docker.com/engine/install/ubuntu/#install-using-the-repository
 
-## Build the image
+### Build the image
 From the root of the project, where the `Dockerfile` is located:
 
 ```
 $ sudo docker build -t cyf-cv-evaluator .
 ```
 
-## Run locally
+### Run locally
 Run the local image, passing in environment variables:
 
 ```bash
@@ -155,19 +155,19 @@ sudo docker run -ti --rm \
   --name cyf-cv-evaluator -p 8000:8000 cyf-cv-evaluator
 ```
 
-## Export the image to a file
+### Export the image to a file
 ```bash
 sudo docker save -o ~/cyf-cv-evaluator.tar cyf-cv-evaluator:latest
 
 sudo chmod 777 ~/cyf-cv-evaluator.tar
 ```
 
-# If needed, copy the image elsewhere
+### If needed, copy the image elsewhere
 ```bash
 scp ~/cyf-cv-evaluator.tar user@server:/home/user
 ```
 
-## If needed, remove the old cyf-cv-evaluator container and image
+### If needed, remove the old cyf-cv-evaluator container and image
 ```bash
 sudo docker stop cyf-cv-evaluator
 
@@ -176,7 +176,7 @@ sudo docker rm cyf-cv-evaluator
 sudo docker rmi cyf-cv-evaluator
 ```
 
-## Load the image elsewhere
+### Load the image elsewhere
 Load the image into docker:
 ```bash
 sudo docker load -i ./cyf-cv-evaluator.tar
@@ -184,9 +184,26 @@ sudo docker load -i ./cyf-cv-evaluator.tar
 sudo docker images
 ```
 
-## Create and run a container from the image
+### Create and run a container from the image
 Copy `docker-compose.yaml` to the server, update the environment variables (see "Environment Variables" section above), and run:
 
 ```bash
 sudo docker compose up -d
 ```
+
+## Coolify Deployment Instructions
+
+1. Create a new application in Coolify.
+2. Add `New Resource`, select `Public Repository`, and point to this GitHub repository.
+3. Select `Dockerfile` as the build pack.
+4. Set **domain** to the Coolify server (e.g. `my-server.example.com`)
+5. Under **Network**, set **Ports Exposes** to `8000`.
+6. Under **Environment Variables**, add the following variables with appropriate values:
+   - `OPENROUTER_API_KEY`
+   - `GITHUB_APP_CLIENT_ID`
+   - `GITHUB_APP_CLIENT_SECRET`
+   - `SESSION_SECRET_KEY`
+   - `ALLOWED_ORG` (e.g. `CodeYourFuture`)
+   - `APP_URL` (set to your Coolify domain, e.g. `https://my-server.example.com` with No trailing slash)
+   - `ENVIRONMENT` (set to `production` for secure cookies and CORS)
+7. Deploy the application.
