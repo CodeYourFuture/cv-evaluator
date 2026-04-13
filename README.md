@@ -21,6 +21,22 @@ CV Evaluator sends a CV to an LLM for review. A CodeYourFuture project.
 4. Create a `.env` file in the project root with the following content:
    ```
    OPENROUTER_API_KEY=your_openrouter_api_key_here
+   
+   # GitHub OAuth (see "GitHub App Setup" section below)
+   GITHUB_APP_CLIENT_ID=your_github_app_client_id
+   GITHUB_APP_CLIENT_SECRET=your_github_app_client_secret
+   
+   # Session security - generate a random key
+   SESSION_SECRET_KEY=your_random_secret_key_here
+   
+   # Organization restriction (users must be members of this org)
+   ALLOWED_ORG=CodeYourFuture
+   
+   # Application URL (for OAuth callback)
+   APP_URL=http://localhost:8000
+   
+   # Environment (use 'development' for local, 'production' for deployed)
+   ENVIRONMENT=development
    ```
 
 5. Update `app/llm_evaluator.yml` with your desired LLM configuration (model, reasoning level, etc.).
@@ -52,6 +68,66 @@ The application creates two FastAPI instances:
 - `slowapi` is used for rate limiting, since there's LLM cost involved with each evaluation. The default limit is set to 5 requests per minute per IP address.
 - `markitdown` is used to convert uploaded CV files (PDF, DOCX) into markdown format for easier processing by the LLM.
 
+## GitHub App Setup
+
+This application uses GitHub OAuth for authentication. Only members of the configured GitHub organization can access the CV evaluation feature.
+
+### Creating a GitHub App
+
+1. Go to your GitHub organization settings: https://github.com/organizations/CodeYourFuture/settings/apps
+
+2. Click **"New GitHub App"**
+
+3. Fill in the required fields:
+   - **GitHub App name**: `CV Evaluator` (or similar)
+   - **Homepage URL**: `https://example.com`
+   - **Callback URL**: `https://example.com/api/auth/callback`
+     - For local development, add: `http://localhost:8000/api/auth/callback`
+   - **Webhook**: Uncheck "Active" (not needed)
+
+4. Under **"Permissions"**, set:
+   - **Account permissions**:
+     - `Email addresses`: Read-only
+   - **Organization permissions**:
+     - `Members`: Read-only
+   Note: changing these permissions may require approval from your GitHub organization admins, and the UI may not reflect whether the changes are actually in effect.
+
+5. Under **"Where can this GitHub App be installed?"**, select:
+   - "Only on this account" (recommended for org-only access)
+
+6. Click **"Create GitHub App"**
+
+7. After creation, note the **Client ID** shown on the app page
+
+8. Click **"Generate a new client secret"** and save it securely
+
+### Environment Variables
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `GITHUB_APP_CLIENT_ID` | Client ID from GitHub App settings | `Iv1.abc123...` |
+| `GITHUB_APP_CLIENT_SECRET` | Client secret (keep secure!) | `abc123...` |
+| `SESSION_SECRET_KEY` | Random string for signing cookies | Generate with: `python -c "import secrets; print(secrets.token_urlsafe(32))"` |
+| `ALLOWED_ORG` | GitHub org name users must belong to | `CodeYourFuture` |
+| `APP_URL` | Public URL of the application | `https://example.com` |
+| `ENVIRONMENT` | `development` or `production` | `production` |
+
+### Authentication Flow
+
+1. User clicks "Sign in with GitHub"
+2. User is redirected to GitHub to authorize
+3. GitHub redirects back to `/api/auth/callback`
+4. App verifies user is a member of the allowed organization
+5. Session cookie is set (valid for 24 hours by default)
+6. User can now access the CV evaluation feature
+
+### Security Notes
+
+- Session tokens are signed JWTs stored in HTTP-only cookies
+- In production (`ENVIRONMENT=production`), cookies are set with `Secure` flag (HTTPS only)
+- CORS is restricted to `APP_URL` in production
+- Organization membership is verified during login
+
 ## Docker
 
 ## Install Docker
@@ -65,10 +141,18 @@ $ sudo docker build -t cyf-cv-evaluator .
 ```
 
 ## Run locally
-Run the local image, passing in the openrouter API key as an environment variable:
+Run the local image, passing in environment variables:
 
 ```bash
-sudo docker run -ti --rm -e OPENROUTER_API_KEY=your_openrouter_api_key_here --name cyf-cv-evaluator -p 8000:8000 cyf-cv-evaluator
+sudo docker run -ti --rm \
+  -e OPENROUTER_API_KEY=your_openrouter_api_key_here \
+  -e GITHUB_APP_CLIENT_ID=your_client_id \
+  -e GITHUB_APP_CLIENT_SECRET=your_client_secret \
+  -e SESSION_SECRET_KEY=your_session_secret \
+  -e ALLOWED_ORG=CodeYourFuture \
+  -e APP_URL=http://localhost:8000 \
+  -e ENVIRONMENT=development \
+  --name cyf-cv-evaluator -p 8000:8000 cyf-cv-evaluator
 ```
 
 ## Export the image to a file
@@ -101,7 +185,7 @@ sudo docker images
 ```
 
 ## Create and run a container from the image
-Copy `docker-compose.yaml` to the server, update the `OPENROUTER_API_KEY` environment variable, and run:
+Copy `docker-compose.yaml` to the server, update the environment variables (see "Environment Variables" section above), and run:
 
 ```bash
 sudo docker compose up -d
