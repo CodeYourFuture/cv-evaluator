@@ -7,6 +7,15 @@ Uses Pydantic BaseSettings for environment variable loading with validation.
 from pydantic_settings import BaseSettings
 from pydantic import Field
 from functools import lru_cache
+import logging
+
+
+logger = logging.getLogger(__name__)
+
+
+class ConfigurationError(Exception):
+    """Raised when required application configuration is missing or invalid."""
+    pass
 
 
 class Settings(BaseSettings):
@@ -52,7 +61,16 @@ class Settings(BaseSettings):
         extra = "ignore"
 
 
+def _validate_required_settings(settings: Settings) -> None:
+    """Fail fast when required security settings are missing."""
+    if not settings.session_secret_key.strip():
+        logger.critical("Missing required configuration: SESSION_SECRET_KEY")
+        raise ConfigurationError("Missing required configuration: SESSION_SECRET_KEY")
+
+
 @lru_cache()
 def get_settings() -> Settings:
     """Get cached settings instance."""
-    return Settings()
+    settings = Settings()
+    _validate_required_settings(settings)
+    return settings

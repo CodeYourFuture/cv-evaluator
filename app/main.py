@@ -22,7 +22,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
 from .llm_evaluator import LlmEvaluator, CvEvaluation
-from .config import get_settings
+from .config import get_settings, ConfigurationError
 from .auth import auth_router, require_auth, User
 
 # Configure logging
@@ -42,7 +42,11 @@ api_app.state.limiter = limiter
 api_app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Get settings
-settings = get_settings()
+try:
+    settings = get_settings()
+except ConfigurationError as exc:
+    logger.critical(f"Startup failure due to configuration error: {exc}")
+    raise SystemExit(1)
 
 # Configure CORS - uses settings to determine allowed origins
 # In production, this restricts to the app's domain only

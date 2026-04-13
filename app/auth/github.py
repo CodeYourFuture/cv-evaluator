@@ -7,6 +7,7 @@ Handles GitHub OAuth flow and API calls for user info and org membership.
 import httpx
 import secrets
 import logging
+from urllib.parse import urlencode
 from typing import Optional
 from dataclasses import dataclass
 
@@ -64,7 +65,7 @@ def get_authorize_url(state: str) -> str:
         "scope": "read:user read:org",
         "state": state,
     }
-    query = "&".join(f"{k}={v}" for k, v in params.items())
+    query = urlencode(params)
     return f"{GITHUB_AUTHORIZE_URL}?{query}"
 
 
@@ -98,11 +99,6 @@ async def exchange_code_for_token(code: str) -> str:
             raise GitHubOAuthError(f"Token exchange failed: {response.status_code}")
         
         data = response.json()
-        logger.info(f"Token exchange response: {data}")
-        
-        # Log the granted scope (if present)
-        scope = data.get("scope", "")
-        logger.info(f"Granted scopes: {scope}")
         
         if "error" in data:
             raise GitHubOAuthError(f"Token exchange error: {data.get('error_description', data['error'])}")
@@ -161,12 +157,10 @@ async def check_org_membership(access_token: str, org: str) -> bool:
     Returns:
         True if user is a member, False otherwise
     """
-    logger.info(f"Checking org membership for org: {org}")
     
     async with httpx.AsyncClient() as client:
         # Use the membership endpoint - returns 200 if member, 404 if not
         url = f"{GITHUB_API_URL}/user/memberships/orgs/{org}"
-        logger.info(f"Requesting: {url}")
         
         response = await client.get(
             url,
@@ -175,9 +169,6 @@ async def check_org_membership(access_token: str, org: str) -> bool:
                 "Accept": "application/vnd.github+json",
             },
         )
-        
-        logger.info(f"Membership check response status: {response.status_code}")
-        logger.info(f"Membership check response body: {response.text}")
         
         if response.status_code == 200:
             data = response.json()
@@ -200,9 +191,7 @@ async def verify_org_membership(access_token: str) -> None:
         OrgMembershipError: If user is not a member
     """
     settings = get_settings()
-    logger.info(f"Verifying membership for org: {settings.allowed_org}")
     is_member = await check_org_membership(access_token, settings.allowed_org)
-    logger.info(f"Membership check result: {is_member}")
     
     if not is_member:
         logger.warning(f"User is NOT a member of {settings.allowed_org}")

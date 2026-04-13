@@ -5,6 +5,7 @@ Handles GitHub OAuth flow: login, callback, logout, and user info.
 """
 
 import logging
+import secrets
 from fastapi import APIRouter, Request, Response, HTTPException, status
 from fastapi.responses import RedirectResponse
 
@@ -25,10 +26,29 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-# Store state tokens temporarily
-# For simplicity, we use an in-memory dict with the state as key
-# This is cleared on server restart, which is acceptable for this use case
-_oauth_states: dict[str, bool] = {}
+OAUTH_STATE_COOKIE_NAME = "oauth_state"
+OAUTH_STATE_MAX_AGE_SECONDS = 300
+
+
+def set_oauth_state_cookie(response: Response, state: str, is_production: bool) -> None:
+    """Bind OAuth state to the browser with a short-lived HttpOnly cookie."""
+    response.set_cookie(
+        key=OAUTH_STATE_COOKIE_NAME,
+        value=state,
+        httponly=True,
+        secure=is_production,
+        samesite="lax",
+        max_age=OAUTH_STATE_MAX_AGE_SECONDS,
+        path="/api/auth",
+    )
+
+
+def clear_oauth_state_cookie(response: Response) -> None:
+    """Remove the OAuth state cookie after callback validation."""
+    response.delete_cookie(
+        key=OAUTH_STATE_COOKIE_NAME,
+        path="/api/auth",
+    )
 
 
 @router.get("/login")
@@ -46,13 +66,14 @@ async def login(request: Request):
             detail="GitHub OAuth not configured. Set GITHUB_APP_CLIENT_ID environment variable.",
         )
     
-    # Generate and store state for CSRF protection
+    # Generate state for CSRF protection and bind it to this browser.
     state = generate_state()
-    _oauth_states[state] = True
-    
-    # Redirect to GitHub
+
+    # Redirect to GitHub and set state cookie.
     auth_url = get_authorize_url(state)
-    return RedirectResponse(url=auth_url, status_code=status.HTTP_302_FOUND)
+    response = RedirectResponse(url=auth_url, status_code=status.HTTP_302_FOUND)
+    set_oauth_state_cookie(response, state, settings.is_production)
+    return response
 
 
 @router.get("/callback")
@@ -70,47 +91,40 @@ async def callback(
     creates session, and redirects to app.
     """
     settings = get_settings()
-    logger.info("OAuth callback received")
+    cookie_state = request.cookies.get(OAUTH_STATE_COOKIE_NAME)
+
+    def _error_redirect(message: str) -> RedirectResponse:
+        response = RedirectResponse(
+            url=f"/?error={message}",
+            status_code=status.HTTP_302_FOUND,
+        )
+        clear_oauth_state_cookie(response)
+        return response
     
     # Handle OAuth errors from GitHub
     if error:
         logger.error(f"OAuth error from GitHub: {error} - {error_description}")
-        return RedirectResponse(
-            url=f"/?error={error_description or error}",
-            status_code=status.HTTP_302_FOUND,
-        )
+        return _error_redirect(error_description or error)
     
     # Validate required parameters
     if not code or not state:
         logger.error("Missing code or state in callback")
-        return RedirectResponse(
-            url="/?error=Missing authorization code or state",
-            status_code=status.HTTP_302_FOUND,
-        )
+        return _error_redirect("Missing authorization code or state")
     
-    # Verify state to prevent CSRF
-    if state not in _oauth_states:
+    # Verify state using cookie-bound one-time nonce.
+    if not cookie_state or not secrets.compare_digest(state, cookie_state):
         logger.error("Invalid state parameter")
-        return RedirectResponse(
-            url="/?error=Invalid state parameter. Please try logging in again.",
-            status_code=status.HTTP_302_FOUND,
-        )
-    
-    # Remove used state
-    del _oauth_states[state]
+        return _error_redirect("Invalid state parameter. Please try logging in again.")
     
     try:
         # Exchange code for access token
-        logger.info("Exchanging code for access token...")
         access_token = await exchange_code_for_token(code)
-        logger.info("Got access token successfully")
         
         # Get user info first (for logging)
         github_user = await get_user_info(access_token)
         logger.info(f"GitHub user: {github_user.login} (ID: {github_user.id})")
         
         # Verify organization membership
-        logger.info(f"Verifying org membership for user {github_user.login}...")
         await verify_org_membership(access_token)
         logger.info(f"User {github_user.login} is verified as org member")
         
@@ -125,27 +139,20 @@ async def callback(
         # Create redirect response and set cookie
         response = RedirectResponse(url="/", status_code=status.HTTP_302_FOUND)
         set_session_cookie(response, session_token)
+        clear_oauth_state_cookie(response)
         
         logger.info(f"Login successful for {github_user.login}")
         return response
         
     except OrgMembershipError as e:
         logger.warning(f"Org membership check failed: {e}")
-        return RedirectResponse(
-            url=f"/?error={str(e)}",
-            status_code=status.HTTP_302_FOUND,
-        )
+        return _error_redirect("Access denied. You must be a member of the required organization.")
     except GitHubOAuthError as e:
         logger.error(f"GitHub OAuth error: {e}")
-        return RedirectResponse(
-            url=f"/?error=Authentication failed: {str(e)}",
-            status_code=status.HTTP_302_FOUND,
-        )
+        return _error_redirect("Authentication failed. Please try signing in again.")
     except Exception as e:
-        return RedirectResponse(
-            url=f"/?error=An unexpected error occurred: {str(e)}",
-            status_code=status.HTTP_302_FOUND,
-        )
+        logger.exception(f"Unexpected error during OAuth callback: {e}")
+        return _error_redirect("An unexpected error occurred. Please try again.")
 
 
 @router.get("/logout")
