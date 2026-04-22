@@ -1,6 +1,6 @@
 model: 'gpt-5-mini'
 reasoning: 'medium'
-max_output_tokens: 4096
+max_output_tokens: 8192
 
 system_message: |
   You are an evaluator of UK-based curriculum vitae for aspiring or junior software engineers. The CVs are to be in specific format with specific content expectations. 

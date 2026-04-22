@@ -8,11 +8,13 @@ output parsing to evaluate CVs against a set of predefined rules.
 import os
 from pathlib import Path
 from typing import Optional
+import logging
 
 import yaml
 from openai import AsyncOpenAI
 from pydantic import BaseModel
 
+logger = logging.getLogger(__name__)
 
 class RuleResult(BaseModel):
     """Result of evaluating a single CV rule."""
@@ -92,15 +94,36 @@ class LlmEvaluator:
             {"role": "system", "content": self.system_message},
             {"role": "user", "content": user_message}
         ]
-        
-        # Call OpenAI with structured output parsing
-        response = await self.client.responses.parse(
-            model=self.model,
-            input=messages,
-            text_format=CvEvaluation,
-            max_output_tokens=self.max_output_tokens,
-            reasoning={"effort": self.reasoning}
+
+        # Call the OpenAI API with structured output parsing
+        try:
+            response = await self.client.responses.parse(
+                model=self.model,
+                input=messages,
+                text_format=CvEvaluation,
+                max_output_tokens=self.max_output_tokens,
+                reasoning={"effort": self.reasoning}
+            )
+        except Exception as e:
+            logger.error("Exception during AI evaluation: %s", str(e))
+            raise
+
+        if response is None:
+            logger.error("AI evaluation failed: No response received.")
+            raise ValueError("AI evaluation failed: No response received.")
+
+        usage = getattr(response, "usage", None)
+        logger.info(
+            "AI evaluation completed: input_tokens=%s output_tokens=%s total_tokens=%s error=%s",
+            getattr(usage, "input_tokens", None),
+            getattr(usage, "output_tokens", None),
+            getattr(usage, "total_tokens", None),
+            getattr(response, "error", None),
         )
+
+        if response.output_parsed is None:
+            logger.error("AI evaluation failed: Response could not be parsed.")
+            raise ValueError("AI evaluation failed: Response could not be parsed.")
         
         # Return the parsed evaluation result
         return response.output_parsed
