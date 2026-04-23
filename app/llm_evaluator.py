@@ -12,7 +12,8 @@ import logging
 
 import yaml
 from openai import AsyncOpenAI
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
+from typing import Any, Dict, Type
 
 logger = logging.getLogger(__name__)
 
@@ -95,12 +96,25 @@ class LlmEvaluator:
             {"role": "user", "content": user_message}
         ]
 
-        # Call the OpenAI API with structured output parsing
+        # Log the start of the evaluation with relevant configuration details
+        logger.info(
+            "Starting AI evaluation: model=%s max_output_tokens=%s reasoning_effort=%s",
+            self.model,
+            self.max_output_tokens,
+            self.reasoning
+        )
+
         try:
-            response = await self.client.responses.parse(
+            # Call create() instead of parse() to have access to the raw response
+            response = await self.client.responses.create(
                 model=self.model,
                 input=messages,
-                text_format=CvEvaluation,
+                text={"format": {
+                    "type": "json_schema",
+                    "strict": True,
+                    "name": "CvEvaluation",
+                    "schema": self._strict_schema(CvEvaluation.model_json_schema()),
+                }},
                 max_output_tokens=self.max_output_tokens,
                 reasoning={"effort": self.reasoning}
             )
@@ -121,9 +135,39 @@ class LlmEvaluator:
             getattr(response, "error", None),
         )
 
-        if response.output_parsed is None:
-            logger.error("AI evaluation failed: Response could not be parsed.")
-            raise ValueError("AI evaluation failed: Response could not be parsed.")
+        # Check if output_text is available in the response
+        if not hasattr(response, "output_text"):
+            logger.error("AI evaluation failed: No output_text in response.")
+            raise ValueError("AI evaluation failed: No output_text in response.")
+
+        # Log the raw output before attempting to parse
+        raw_output = response.output_text
+        logger.info("Raw model output: %s", raw_output)
+
+        # Attempt to parse the raw output into the CvEvaluation model
+        try:
+            result = CvEvaluation.model_validate_json(raw_output)
+        except ValidationError as e:
+            logger.error("Failed to parse model output: %s\nRaw output: %s", str(e), raw_output)
+            raise
         
         # Return the parsed evaluation result
-        return response.output_parsed
+        return result
+
+    def _strict_schema(self, schema: dict) -> dict:
+        """
+        Get the JSON schema for the response format.
+        OpenAI requires some modifications to the schema.
+        When using the parse() method with text_format, this
+        is done automatically. However, if we specify the schema
+        manually, we need to make these adjustments ourselves.
+        """
+        if schema.get("type") == "object":
+            schema["additionalProperties"] = False
+            if "properties" in schema:
+                schema["required"] = list(schema["properties"].keys())
+        for value in schema.get("properties", {}).values():
+            self._strict_schema(value)
+        for value in schema.get("$defs", {}).values():
+            self._strict_schema(value)
+        return schema
