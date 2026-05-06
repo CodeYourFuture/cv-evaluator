@@ -18,3 +18,5 @@ services:
       - 'APP_URL=https://example.com'
       # Environment (production enables secure cookies and restricted CORS)
       - 'ENVIRONMENT=production'
+      # LLM retry count (0 = no retries, max 3)
+      - 'LLM_RETRY_COUNT=2'

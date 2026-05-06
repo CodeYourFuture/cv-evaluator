@@ -118,11 +118,18 @@ async def evaluate_cv(
             raise HTTPException(status_code=400, detail=f"Error reading file: {str(e)}")
     
     # Evaluate the CV using the LLM evaluator
-    try:
-        result = await evaluator.eval(cv_content)
-        return result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error evaluating CV: {str(e)}")
+    last_exc: Exception | None = None
+    for attempt in range(1 + settings.llm_retry_count):
+        try:
+            result = await evaluator.eval(cv_content)
+            return result
+        except Exception as e:
+            last_exc = e
+            if attempt < settings.llm_retry_count:
+                logger.warning(f"CV evaluation attempt {attempt + 1} of {1 + settings.llm_retry_count} failed, retrying...")
+            else:
+                logger.error(f"CV evaluation failed after {1 + settings.llm_retry_count} attempts.")
+    raise HTTPException(status_code=500, detail=f"Error evaluating CV: {str(last_exc)}")
 
 # Mount the API app under the /api path
 app.mount("/api", api_app)
