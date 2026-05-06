@@ -38,6 +38,9 @@ class Settings(BaseSettings):
     # Application URL (for OAuth callback)
     app_url: str = Field(default="http://localhost:8000", alias="APP_URL")
     
+    # LLM retry count (0 = no retries, max 3)
+    llm_retry_count: int = Field(default=0, alias="LLM_RETRY_COUNT", ge=0, le=3)
+
     # Environment
     environment: str = Field(default="development", alias="ENVIRONMENT")
     

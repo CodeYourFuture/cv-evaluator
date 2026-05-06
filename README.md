@@ -37,6 +37,9 @@ CV Evaluator sends a CV to an LLM for review. A CodeYourFuture project.
    
    # Environment (use 'development' for local, 'production' for deployed)
    ENVIRONMENT=development
+
+   # LLM retry count (0 = no retries, max 3)
+   LLM_RETRY_COUNT=2
    ```
 
 5. Update `app/llm_evaluator.yml` with your desired LLM configuration (model, reasoning level, etc.).
@@ -111,6 +114,7 @@ This application uses GitHub OAuth for authentication. Only members of the confi
 | `ALLOWED_ORG` | GitHub org name users must belong to | `CodeYourFuture` |
 | `APP_URL` | Public URL of the application | `https://example.com` |
 | `ENVIRONMENT` | `development` or `production` | `production` |
+| `LLM_RETRY_COUNT` | Number of times to retry LLM evaluation on failure (0 = no retries, max 3) | `2` |
 
 ### Authentication Flow
 
@@ -152,6 +156,7 @@ sudo docker run -ti --rm \
   -e ALLOWED_ORG=CodeYourFuture \
   -e APP_URL=http://localhost:8000 \
   -e ENVIRONMENT=development \
+  -e LLM_RETRY_COUNT=2 \
   --name cyf-cv-evaluator -p 8000:8000 cyf-cv-evaluator
 ```
 
@@ -206,4 +211,5 @@ sudo docker compose up -d
    - `ALLOWED_ORG` (e.g. `CodeYourFuture`)
    - `APP_URL` (set to your Coolify domain, e.g. `https://my-server.example.com` with No trailing slash)
    - `ENVIRONMENT` (set to `production` for secure cookies and CORS)
+   - `LLM_RETRY_COUNT` (set to the number of times to retry LLM evaluation on failure, 0 = no retries, max 3)
 7. Deploy the application.
