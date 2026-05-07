@@ -173,9 +173,11 @@ function showSuccess(result) {
     pronouns: "No Personal Pronouns",
     tense: "Tense",
     buzzwords: "No Buzzwords",
+    summary: "Summary",
     outcomes: "Outcomes",
     project: "Projects",
     experience: "Experience",
+    education: "Education",
   };
 
   // Build the evaluation list HTML
