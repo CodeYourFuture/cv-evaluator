@@ -33,9 +33,11 @@ class CvEvaluation(BaseModel):
     pronouns: RuleResult
     tense: RuleResult
     buzzwords: RuleResult
+    summary: RuleResult
     outcomes: RuleResult
     project: RuleResult
     experience: RuleResult
+    education: RuleResult
     debug_info: Optional[str] = None
 
 
