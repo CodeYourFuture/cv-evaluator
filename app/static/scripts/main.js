@@ -214,10 +214,6 @@ function showSuccess(result) {
             ${evaluationListHtml}
         </ul>
         ${result.debug_info ? `<div class="debug-info"><strong>Debug Info:</strong> ${escapeHtml(result.debug_info)}</div>` : ""}
-        <details class="raw-result">
-            <summary>Raw API Response</summary>
-            <pre>${JSON.stringify(result, null, 2)}</pre>
-        </details>
     `;
 }
 
