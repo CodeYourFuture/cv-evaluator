@@ -326,24 +326,6 @@ button:hover {
     color: #721c24;
 }
 
-.raw-result {
-    margin-top: 15px;
-}
-
-.raw-result summary {
-    cursor: pointer;
-    font-weight: bold;
-    padding: 5px 0;
-}
-
-.raw-result pre {
-    background-color: #F6F3F3;
-    padding: 10px;
-    border-radius: 4px;
-    overflow-x: auto;
-    margin-top: 10px;
-}
-
 /* ===== Authentication Styles ===== */
 
 .app-header {
