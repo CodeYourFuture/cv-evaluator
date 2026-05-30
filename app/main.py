@@ -71,6 +71,32 @@ markitdown = MarkItDown(enable_plugins=False)
 MAX_FILE_SIZE_MB = 30
 MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
 
+
+async def _extract_content_from_upload(upload: UploadFile, input_name: str) -> str:
+    """Read and convert an uploaded PDF/DOCX file to markdown text."""
+    allowed_types = [
+        "application/pdf",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    ]
+    if upload.content_type not in allowed_types:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported file type for {input_name}. Please upload PDF or DOCX files only."
+        )
+
+    try:
+        content = await upload.read()
+        if len(content) > MAX_FILE_SIZE_BYTES:
+            raise HTTPException(
+                status_code=413,
+                detail=f"{input_name} file too large. Maximum size is {MAX_FILE_SIZE_MB}MB."
+            )
+
+        result = markitdown.convert(io.BytesIO(content))
+        return result.text_content
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error reading {input_name} file: {str(e)}")
+
 # CV evaluation endpoint - handles both JSON and file uploads
 # Protected by authentication - only org members can access
 @api_app.post("/cv/evaluate", response_model=CvEvaluation)
@@ -78,50 +104,45 @@ MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
 async def evaluate_cv(
     request: Request,
     cv_text: Optional[str] = Form(None),
-    file: Optional[UploadFile] = File(None),
+    cv_file: Optional[UploadFile] = File(None),
+    jd_text: Optional[str] = Form(None),
+    jd_file: Optional[UploadFile] = File(None),
     user: User = Depends(require_auth),
 ):
     """
-    Evaluate a CV either from text input or file upload.
-    Accepts either form data with cv_text field or a file upload.
+    Evaluate a CV from text input or file upload, with an optional
+    job description provided as text input or file upload.
     """
-    
-    if cv_text is None and file is None:
-        raise HTTPException(status_code=400, detail="Either cv_text or file upload is required")
-    
-    if cv_text is not None and file is not None:
-        raise HTTPException(status_code=400, detail="Provide either cv_text OR file upload, not both")
-    
-    cv_content = ""
-    
-    if cv_text:
-        # Handle text input
-        cv_content = cv_text
-    elif file:
-        # Handle file upload
-        allowed_types = [
-            "application/pdf",
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-        ]
-        if file.content_type not in allowed_types:
-            raise HTTPException(status_code=400, detail="Unsupported file type. Please upload PDF or DOCX files only.")
-        
-        try:
-            # Convert the file to markdown for sending to the LLM
-            content = await file.read()
-            if len(content) > MAX_FILE_SIZE_BYTES:
-                raise HTTPException(status_code=413, detail=f"File too large. Maximum size is {MAX_FILE_SIZE_MB}MB.")
-            
-            result = markitdown.convert(io.BytesIO(content))
-            cv_content = result.text_content
-        except Exception as e:
-            raise HTTPException(status_code=400, detail=f"Error reading file: {str(e)}")
-    
+
+    if cv_text is None and cv_file is None:
+        raise HTTPException(status_code=400, detail="Either cv_text or cv_file is required")
+
+    if cv_text is not None and cv_file is not None:
+        raise HTTPException(status_code=400, detail="Provide either cv_text OR cv_file, not both")
+
+    if jd_text is not None and jd_file is not None:
+        raise HTTPException(status_code=400, detail="Provide either jd_text OR jd_file, not both")
+
+    cv_content = cv_text.strip() if cv_text else ""
+    jd_content: Optional[str] = jd_text.strip() if jd_text else None
+
+    if cv_file is not None:
+        cv_content = await _extract_content_from_upload(cv_file, "CV")
+
+    if jd_file is not None:
+        jd_content = await _extract_content_from_upload(jd_file, "job description")
+
+    if not cv_content:
+        raise HTTPException(status_code=400, detail="CV content is required")
+
+    if jd_content is not None and not jd_content:
+        jd_content = None
+
     # Evaluate the CV using the LLM evaluator
     last_exc: Exception | None = None
     for attempt in range(1 + settings.llm_retry_count):
         try:
-            result = await evaluator.eval(cv_content)
+            result = await evaluator.eval(cv_content, jd_content)
             return result
         except Exception as e:
             last_exc = e

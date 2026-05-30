@@ -1,6 +1,6 @@
 /**
  * CV Client for interacting with the CV Evaluation API
- * A JavaScript module for evaluating CVs via text or file upload
+ * A JavaScript module for evaluating CVs with optional job descriptions
  */
 
 export class CvClient {
@@ -9,19 +9,18 @@ export class CvClient {
     this.apiEndpoint = "/api/cv/evaluate";
   }
 
-  /**
-   * Evaluate CV from text content
-   * @param {string} cvText - The CV content as text
-   * @returns {Promise<Object>} - API response
-   */
-  async evaluateText(cvText) {
-    if (!cvText || typeof cvText !== "string") {
-      throw new Error("CV text is required and must be a string");
+  async evaluateSubmission({ cv, jd }) {
+    this._validateRequiredInput(cv, "CV");
+    if (jd) {
+      this._validateOptionalInput(jd, "job description");
     }
 
     try {
       const formData = new FormData();
-      formData.append("cv_text", cvText);
+      this._appendInput(formData, cv, "cv");
+      if (jd && this._hasInput(jd)) {
+        this._appendInput(formData, jd, "jd");
+      }
 
       const response = await fetch(`${this.baseUrl}${this.apiEndpoint}`, {
         method: "POST",
@@ -30,57 +29,68 @@ export class CvClient {
 
       return await this._handleResponse(response);
     } catch (error) {
-      throw new Error(`Failed to evaluate CV text: ${error.message}`);
+      throw new Error(`Failed to evaluate submission: ${error.message}`);
     }
   }
 
-  /**
-   * Evaluate CV from file upload
-   * @param {File} file - The CV file to upload
-   * @returns {Promise<Object>} - API response
-   */
-  async evaluateFile(file) {
-    if (!file || !(file instanceof File)) {
-      throw new Error("A valid file is required");
-    }
-
-    // Check file type
-    const allowedTypes = [
-      "application/pdf",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    ];
-
-    if (!allowedTypes.includes(file.type)) {
-      throw new Error("Unsupported file type. Please upload PDF or DOCX files only.");
-    }
-
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const response = await fetch(`${this.baseUrl}${this.apiEndpoint}`, {
-        method: "POST",
-        body: formData,
-      });
-
-      return await this._handleResponse(response);
-    } catch (error) {
-      throw new Error(`Failed to evaluate CV file: ${error.message}`);
-    }
-  }
-
-  /**
-   * Generic evaluate method that handles both text and file input
-   * @param {string|File} input - Either CV text string or File object
-   * @returns {Promise<Object>} - API response
-   */
-  async evaluate(input) {
-    if (typeof input === "string") {
-      return this.evaluateText(input);
-    } else if (input instanceof File) {
-      return this.evaluateFile(input);
+  _appendInput(formData, input, prefix) {
+    if (input.mode === "text") {
+      formData.append(`${prefix}_text`, input.text.trim());
     } else {
-      throw new Error("Input must be either a string (CV text) or File object");
+      formData.append(`${prefix}_file`, input.file);
+    }
+  }
+
+  _hasInput(input) {
+    if (input.mode === "text") {
+      return typeof input.text === "string" && input.text.trim().length > 0;
+    }
+    return input.file instanceof File;
+  }
+
+  _validateRequiredInput(input, inputName) {
+    if (!input || (input.mode !== "text" && input.mode !== "file")) {
+      throw new Error(`${inputName} input mode must be 'text' or 'file'`);
+    }
+
+    if (input.mode === "text") {
+      if (typeof input.text !== "string" || input.text.trim().length === 0) {
+        throw new Error(`${inputName} text is required`);
+      }
+      return;
+    }
+
+    if (!input.file || !(input.file instanceof File)) {
+      throw new Error(`A valid ${inputName} file is required`);
+    }
+    if (!CvClient.validateFile(input.file)) {
+      throw new Error(`Unsupported ${inputName} file type. Please upload PDF or DOCX files only.`);
+    }
+  }
+
+  _validateOptionalInput(input, inputName) {
+    if (!input || (input.mode !== "text" && input.mode !== "file")) {
+      throw new Error(`${inputName} input mode must be 'text' or 'file'`);
+    }
+
+    if (input.mode === "text") {
+      if (input.text == null) {
+        return;
+      }
+      if (typeof input.text !== "string") {
+        throw new Error(`${inputName} text must be a string`);
+      }
+      return;
+    }
+
+    if (input.file == null) {
+      return;
+    }
+    if (!(input.file instanceof File)) {
+      throw new Error(`A valid ${inputName} file is required`);
+    }
+    if (!CvClient.validateFile(input.file)) {
+      throw new Error(`Unsupported ${inputName} file type. Please upload PDF or DOCX files only.`);
     }
   }
 

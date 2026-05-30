@@ -38,6 +38,8 @@ class CvEvaluation(BaseModel):
     project: RuleResult
     experience: RuleResult
     education: RuleResult
+    jd_match_for_computers: Optional[RuleResult] = None
+    jd_match_for_people: Optional[RuleResult] = None
     debug_info: Optional[str] = None
 
 
@@ -79,18 +81,26 @@ class LlmEvaluator:
         self.system_message = config.get("system_message", "")
         self.user_message_template = config.get("user_message", "{cv_text}")
     
-    async def eval(self, cv_text: str) -> CvEvaluation:
+    async def eval(self, cv_text: str, jd_text: Optional[str] = None) -> CvEvaluation:
         """
         Evaluate a CV using OpenAI.
         
         Args:
             cv_text: The text content of the CV to evaluate.
+            jd_text: Optional job description text.
             
         Returns:
             CvEvaluation: Structured evaluation result.
         """
         # Construct the user message with the CV text
-        user_message = self.user_message_template.format(cv_text=cv_text)
+        job_description_section = "[NO_JOB_DESCRIPTION_PROVIDED]"
+        if jd_text and jd_text.strip():
+            job_description_section = jd_text.strip()
+
+        user_message = self.user_message_template.format(
+            cv_text=cv_text,
+            job_description_section=job_description_section,
+        )
         
         # Build the messages for the API call
         messages = [

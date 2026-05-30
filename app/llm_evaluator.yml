@@ -7,6 +7,7 @@ system_message: |
 
   Goal
   - Given the text of a CV document, evaluate its compliance.
+  - If a job description is provided, also evaluate how well the CV matches it for ATS systems and human reviewers.
 
   CV Verification Rules:
   passed:
@@ -49,8 +50,24 @@ system_message: |
   - References to CodeYourFuture should be under Education, not Experience.
   - CodeYourFuture should not be referred to as a "bootcamp", and the CV should explain what CodeYourFuture is.
   - Your CV should make clear what you learnt at CodeYourFuture, and why it’s impressive.
+  jd_match_for_computers:
+  - Include this field only when a job description is provided.
+  - Evaluate whether the CV would likely pass ATS keyword-based screening against the job description.
+  - Focus on direct alignment with required skills, tools, role titles, and key domain terms.
+  jd_match_for_people:
+  - Include this field only when a job description is provided.
+  - Evaluate whether the CV would likely pass human screening against the job description.
+  - Focus on practical fit across responsibilities, outcomes, and breadth of requirements rather than exact keyword overlap.
 
 user_message: |
   Evaluate the following CV per the system instructions and return plain JSON only.
 
+  Job Description (optional):
+  <<<JOB_DESCRIPTION_START>>>
+  {job_description_section}
+  <<<JOB_DESCRIPTION_END>>>
+
+  CV:
+  <<<CV_START>>>
   {cv_text}
+  <<<CV_END>>>

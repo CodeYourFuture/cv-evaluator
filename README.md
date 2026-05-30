@@ -1,5 +1,5 @@
 # cv-evaluator
-CV Evaluator sends a CV to an LLM for review. A CodeYourFuture project.
+CV Evaluator sends a CV to an LLM for review, with optional job-description matching. A CodeYourFuture project.
 
 ## Local Development Instructions
 
@@ -70,6 +70,12 @@ The application creates two FastAPI instances:
 ### Notes
 - `slowapi` is used for rate limiting, since there's LLM cost involved with each evaluation. The default limit is set to 5 requests per minute per IP address.
 - `markitdown` is used to convert uploaded CV files (PDF, DOCX) into markdown format for easier processing by the LLM.
+- The UI accepts two inputs:
+   - Required CV input (text or PDF/DOCX upload)
+   - Optional job description input (text or PDF/DOCX upload)
+- When a job description is provided, the API response may include:
+   - `jd_match_for_computers`
+   - `jd_match_for_people`
 
 ## GitHub App Setup
 
