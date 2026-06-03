@@ -51,11 +51,11 @@ system_message: |
   - CodeYourFuture should not be referred to as a "bootcamp", and the CV should explain what CodeYourFuture is.
   - Your CV should make clear what you learnt at CodeYourFuture, and why it’s impressive.
   jd_match_for_computers:
-  - Include this field only when a job description is provided.
+  - If no job description is provided, include this field with a null value.
   - Evaluate whether the CV would likely pass ATS keyword-based screening against the job description.
   - Focus on direct alignment with required skills, tools, role titles, and key domain terms.
   jd_match_for_people:
-  - Include this field only when a job description is provided.
+  - If no job description is provided, include this field with a null value.
   - Evaluate whether the CV would likely pass human screening against the job description.
   - Focus on practical fit across responsibilities, outcomes, and breadth of requirements rather than exact keyword overlap.
 
