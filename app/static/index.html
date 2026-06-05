@@ -31,7 +31,7 @@
 
     <div class="container">
         <h1>CodeYourFuture: CV Evaluation Tool</h1>
-        <p>Evaluate CVs by entering text or uploading files.</p>
+        <p>Evaluate your CV and optionally provide a job description.</p>
 
         <!-- Auth Error Message -->
         <div id="authError" class="auth-error" style="display: none;">
@@ -48,33 +48,66 @@
 
         <div id="mainContent" style="display: none;">
             <div class="privacy-warning">
-                <p><strong>Privacy warning:</strong> This tool sends CV data to an external API. If you have privacy concerns, please replace your name, phone number, email address, and so forth with fake data. You may also wish to redact any other personally identifying information. If you're still not sure, skip this step and reach out in <span style="white-space: nowrap">#cyf-profile-review</span> to request a manual review.</p>
+                <p><strong>Privacy warning:</strong> This tool sends CV and job description data to an external API. If you have privacy concerns, please replace your name, phone number, email address, and so forth with fake data. You may also wish to redact any other personally identifying information. If you're still not sure, skip this step and reach out in <span style="white-space: nowrap">#cyf-profile-review</span> to request a manual review.</p>
             </div>
 
             <div class="demo-section">
-            
-            <!-- Mode Switcher -->
-            <div class="mode-switcher">
-                <button id="textModeBtn" class="mode-btn active">Text Input</button>
-                <button id="fileModeBtn" class="mode-btn">File Upload</button>
-            </div>
-            
-            <!-- Text Input Section -->
-            <div id="textSection" class="input-section">
-                <div class="form-group">
-                    <label for="cvText">CV Content:</label>
-                    <textarea id="cvText" placeholder="Paste your CV content here..."></textarea>
+
+            <section class="input-card">
+                <h2>Your CV</h2>
+                <p class="input-description">Provide your CV as text or upload a PDF/DOCX file.</p>
+
+                <div class="mode-switcher">
+                    <button id="cvTextModeBtn" class="mode-btn active">Text Input</button>
+                    <button id="cvFileModeBtn" class="mode-btn">File Upload</button>
                 </div>
-            </div>
-            
-            <!-- File Upload Section -->
-            <div id="fileSection" class="input-section" style="display: none;">
-                <div class="form-group">
-                    <label for="cvFile">Upload CV (PDF or DOCX):</label>
-                    <input type="file" id="cvFile" accept=".pdf,.docx">
-                    <div id="fileInfo" class="file-info"></div>
+
+                <div id="cvTextSection" class="input-section">
+                    <div class="form-group">
+                        <label for="cvText">CV Text:</label>
+                        <textarea id="cvText" placeholder="Paste your CV text here..."></textarea>
+                    </div>
                 </div>
-            </div>
+
+                <div id="cvFileSection" class="input-section" style="display: none;">
+                    <div class="form-group">
+                        <label for="cvFile">Upload CV (PDF or DOCX):</label>
+                        <input type="file" id="cvFile" accept=".pdf,.docx">
+                        <div class="file-meta">
+                            <div id="cvFileInfo" class="file-info"></div>
+                            <button type="button" id="cvFileRemoveBtn" class="btn-file-remove" style="display: none;">Remove file</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="input-card optional-card">
+                <h2>Job Description<span class="optional-badge">Optional</span></h2>
+                <p class="input-description">Add a job description to get ATS and human match checks.</p>
+
+                <div class="mode-switcher">
+                    <button id="jdTextModeBtn" class="mode-btn active">Text Input</button>
+                    <button id="jdFileModeBtn" class="mode-btn">File Upload</button>
+                </div>
+
+                <div id="jdTextSection" class="input-section">
+                    <div class="form-group">
+                        <label for="jdText">Job Description Text (Optional):</label>
+                        <textarea id="jdText" placeholder="Paste the job description here..."></textarea>
+                    </div>
+                </div>
+
+                <div id="jdFileSection" class="input-section" style="display: none;">
+                    <div class="form-group">
+                        <label for="jdFile">Upload Job Description (PDF or DOCX):</label>
+                        <input type="file" id="jdFile" accept=".pdf,.docx">
+                        <div class="file-meta">
+                            <div id="jdFileInfo" class="file-info"></div>
+                            <button type="button" id="jdFileRemoveBtn" class="btn-file-remove" style="display: none;">Remove file</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
             
             <!-- Form Actions -->
             <div class="form-actions">

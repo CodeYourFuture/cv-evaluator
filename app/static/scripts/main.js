@@ -1,6 +1,6 @@
 /**
  * Main application script for CV Evaluation frontend
- * Handles UI interactions and CV evaluation flow
+ * Handles UI interactions for CV + optional job description evaluation flow
  */
 
 import CvClient from "./cv-client.js";
@@ -14,16 +14,25 @@ import {
 
 // Application state
 const cvClient = new CvClient();
-let currentMode = "text";
+let cvMode = "text";
+let jdMode = "text";
 let isSubmitting = false;
 
 // DOM elements
-const textModeBtn = document.getElementById("textModeBtn");
-const fileModeBtn = document.getElementById("fileModeBtn");
-const textSection = document.getElementById("textSection");
-const fileSection = document.getElementById("fileSection");
+const cvTextModeBtn = document.getElementById("cvTextModeBtn");
+const cvFileModeBtn = document.getElementById("cvFileModeBtn");
+const jdTextModeBtn = document.getElementById("jdTextModeBtn");
+const jdFileModeBtn = document.getElementById("jdFileModeBtn");
+const cvTextSection = document.getElementById("cvTextSection");
+const cvFileSection = document.getElementById("cvFileSection");
+const jdTextSection = document.getElementById("jdTextSection");
+const jdFileSection = document.getElementById("jdFileSection");
 const cvTextArea = document.getElementById("cvText");
-const fileInput = document.getElementById("cvFile");
+const jdTextArea = document.getElementById("jdText");
+const cvFileInput = document.getElementById("cvFile");
+const jdFileInput = document.getElementById("jdFile");
+const cvFileRemoveBtn = document.getElementById("cvFileRemoveBtn");
+const jdFileRemoveBtn = document.getElementById("jdFileRemoveBtn");
 const submitBtn = document.getElementById("submitBtn");
 const clearBtn = document.getElementById("clearBtn");
 const resultSection = document.getElementById("resultSection");
@@ -31,39 +40,77 @@ const resultContent = document.getElementById("resultContent");
 const loadingIndicator = document.getElementById("loadingIndicator");
 const formActions = document.querySelector(".form-actions");
 
-function switchMode(mode) {
-  currentMode = mode;
+function switchCvMode(mode) {
+  cvMode = mode;
+  cvTextModeBtn.classList.toggle("active", mode === "text");
+  cvFileModeBtn.classList.toggle("active", mode === "file");
+  cvTextSection.style.display = mode === "text" ? "block" : "none";
+  cvFileSection.style.display = mode === "file" ? "block" : "none";
 
-  // Update button states
-  textModeBtn.classList.toggle("active", mode === "text");
-  fileModeBtn.classList.toggle("active", mode === "file");
-
-  // Show/hide sections
-  textSection.style.display = mode === "text" ? "block" : "none";
-  fileSection.style.display = mode === "file" ? "block" : "none";
-
-  // Clear results and update submit button
   hideResults();
   updateSubmitButton();
 }
 
-function handleFileSelection() {
+function switchJdMode(mode) {
+  jdMode = mode;
+  jdTextModeBtn.classList.toggle("active", mode === "text");
+  jdFileModeBtn.classList.toggle("active", mode === "file");
+  jdTextSection.style.display = mode === "text" ? "block" : "none";
+  jdFileSection.style.display = mode === "file" ? "block" : "none";
+
+  hideResults();
+  updateSubmitButton();
+}
+
+function handleFileSelection(fileInput, fileInfoId, removeBtnId, inputLabel) {
   const file = fileInput.files[0];
+  const fileInfo = document.getElementById(fileInfoId);
+  const removeBtn = document.getElementById(removeBtnId);
 
   if (file) {
-    // Validate file type
     if (!CvClient.validateFile(file)) {
-      showError("Invalid file type. Please select a PDF or DOCX file.");
+      showError(`Invalid ${inputLabel} file type. Please select a PDF or DOCX file.`);
       fileInput.value = "";
+      if (fileInfo) {
+        fileInfo.textContent = "";
+        fileInfo.style.display = "none";
+      }
+      if (removeBtn) {
+        removeBtn.style.display = "none";
+      }
       return;
     }
 
-    // Show file info
-    const fileInfo = document.getElementById("fileInfo");
     if (fileInfo) {
       fileInfo.textContent = `Selected: ${file.name} (${formatFileSize(file.size)})`;
       fileInfo.style.display = "block";
     }
+    if (removeBtn) {
+      removeBtn.style.display = "inline-flex";
+    }
+  } else if (fileInfo) {
+    fileInfo.textContent = "";
+    fileInfo.style.display = "none";
+    if (removeBtn) {
+      removeBtn.style.display = "none";
+    }
+  }
+
+  updateSubmitButton();
+}
+
+function removeSelectedFile(fileInput, fileInfoId, removeBtnId) {
+  fileInput.value = "";
+  const fileInfo = document.getElementById(fileInfoId);
+  const removeBtn = document.getElementById(removeBtnId);
+
+  if (fileInfo) {
+    fileInfo.textContent = "";
+    fileInfo.style.display = "none";
+  }
+
+  if (removeBtn) {
+    removeBtn.style.display = "none";
   }
 
   updateSubmitButton();
@@ -79,16 +126,38 @@ function updateSubmitButton() {
   if (isSubmitting) {
     submitBtn.textContent = "Evaluating...";
   } else {
-    submitBtn.textContent = "Evaluate CV";
+    submitBtn.textContent = "Evaluate";
   }
 }
 
 function canSubmitForm() {
-  if (currentMode === "text") {
-    return cvTextArea.value.trim().length > 0;
-  } else {
-    return fileInput.files.length > 0;
+  return getCvInput() !== null;
+}
+
+function getCvInput() {
+  if (cvMode === "text") {
+    const text = cvTextArea.value.trim();
+    if (!text) {
+      return null;
+    }
+    return { mode: "text", text };
   }
+
+  const file = cvFileInput.files[0];
+  if (!file) {
+    return null;
+  }
+  return { mode: "file", file };
+}
+
+function getJdInput() {
+  if (jdMode === "text") {
+    const text = jdTextArea.value.trim();
+    return text ? { mode: "text", text } : null;
+  }
+
+  const file = jdFileInput.files[0];
+  return file ? { mode: "file", file } : null;
 }
 
 async function handleSubmit() {
@@ -108,15 +177,12 @@ async function handleSubmit() {
   hideResults();
 
   try {
-    let result;
-
-    if (currentMode === "text") {
-      const text = cvTextArea.value.trim();
-      result = await cvClient.evaluateText(text);
-    } else {
-      const file = fileInput.files[0];
-      result = await cvClient.evaluateFile(file);
-    }
+    const cvInput = getCvInput();
+    const jdInput = getJdInput();
+    const result = await cvClient.evaluateSubmission({
+      cv: cvInput,
+      jd: jdInput,
+    });
 
     showSuccess(result);
   } catch (error) {
@@ -137,14 +203,27 @@ async function handleSubmit() {
 }
 
 function clearForm() {
-  if (currentMode === "text") {
-    cvTextArea.value = "";
-  } else {
-    fileInput.value = "";
-    const fileInfo = document.getElementById("fileInfo");
-    if (fileInfo) {
-      fileInfo.style.display = "none";
-    }
+  cvTextArea.value = "";
+  jdTextArea.value = "";
+
+  cvFileInput.value = "";
+  jdFileInput.value = "";
+
+  const cvFileInfo = document.getElementById("cvFileInfo");
+  const jdFileInfo = document.getElementById("jdFileInfo");
+  if (cvFileInfo) {
+    cvFileInfo.textContent = "";
+    cvFileInfo.style.display = "none";
+  }
+  if (jdFileInfo) {
+    jdFileInfo.textContent = "";
+    jdFileInfo.style.display = "none";
+  }
+  if (cvFileRemoveBtn) {
+    cvFileRemoveBtn.style.display = "none";
+  }
+  if (jdFileRemoveBtn) {
+    jdFileRemoveBtn.style.display = "none";
   }
 
   hideResults();
@@ -163,12 +242,10 @@ function showSuccess(result) {
   resultSection.className = "result";
   resultSection.style.display = "block";
 
-  // Category labels mapping
   const categoryLabels = {
     spelling_grammar: "Spelling & Grammar",
     two_pages: "Two Pages",
     contact_details: "Contact Details",
-    links: "Links",
     dates: "Dates",
     pronouns: "No Personal Pronouns",
     tense: "Tense",
@@ -180,8 +257,12 @@ function showSuccess(result) {
     education: "Education",
   };
 
-  // Build the evaluation list HTML
-  let evaluationListHtml = "";
+  const jdCategoryLabels = {
+    jd_match_for_computers: "JD Match For Computers (ATS)",
+    jd_match_for_people: "JD Match For People",
+  };
+
+  let coreEvaluationListHtml = "";
   for (const [key, label] of Object.entries(categoryLabels)) {
     if (result[key]) {
       const ruleResult = result[key];
@@ -189,7 +270,7 @@ function showSuccess(result) {
       const icon = passed ? "✓" : "✗";
       const iconClass = passed ? "icon-pass" : "icon-fail";
 
-      evaluationListHtml += `
+      coreEvaluationListHtml += `
                 <li class="evaluation-item ${passed ? "passed" : "failed"}">
                     <span class="evaluation-icon ${iconClass}">${icon}</span>
                     <span class="evaluation-category">${label}</span>
@@ -198,6 +279,33 @@ function showSuccess(result) {
             `;
     }
   }
+
+  let jdEvaluationListHtml = "";
+  for (const [key, label] of Object.entries(jdCategoryLabels)) {
+    if (result[key]) {
+      const ruleResult = result[key];
+      const passed = ruleResult.passed;
+      const icon = passed ? "✓" : "✗";
+      const iconClass = passed ? "icon-pass" : "icon-fail";
+
+      jdEvaluationListHtml += `
+                <li class="evaluation-item ${passed ? "passed" : "failed"}">
+                    <span class="evaluation-icon ${iconClass}">${icon}</span>
+                    <span class="evaluation-category">${label}</span>
+                    <span class="evaluation-details">${escapeHtml(ruleResult.details)}</span>
+                </li>
+            `;
+    }
+  }
+
+  const jdSectionHtml = jdEvaluationListHtml
+    ? `
+        <h3 class="evaluation-subheading">Job Description Match</h3>
+        <ul class="evaluation-list">
+            ${jdEvaluationListHtml}
+        </ul>
+      `
+    : "";
 
   // Overall status
   const overallPassed = result.passed === true || result.passed === "true";
@@ -210,9 +318,11 @@ function showSuccess(result) {
             <span class="overall-icon">${overallIcon}</span>
             <span class="overall-text">${overallPassed ? "CV PASSED" : "CV NEEDS IMPROVEMENT"}</span>
         </div>
+        <h3 class="evaluation-subheading">Core CV Rules</h3>
         <ul class="evaluation-list">
-            ${evaluationListHtml}
+          ${coreEvaluationListHtml}
         </ul>
+        ${jdSectionHtml}
         ${result.debug_info ? `<div class="debug-info"><strong>Debug Info:</strong> ${escapeHtml(result.debug_info)}</div>` : ""}
     `;
 }
@@ -251,12 +361,22 @@ function escapeHtml(text) {
 }
 
 // Event listeners
-textModeBtn.addEventListener("click", () => switchMode("text"));
-fileModeBtn.addEventListener("click", () => switchMode("file"));
+cvTextModeBtn.addEventListener("click", () => switchCvMode("text"));
+cvFileModeBtn.addEventListener("click", () => switchCvMode("file"));
+jdTextModeBtn.addEventListener("click", () => switchJdMode("text"));
+jdFileModeBtn.addEventListener("click", () => switchJdMode("file"));
 submitBtn.addEventListener("click", handleSubmit);
 clearBtn.addEventListener("click", clearForm);
-fileInput.addEventListener("change", handleFileSelection);
+cvFileInput.addEventListener("change", () => handleFileSelection(cvFileInput, "cvFileInfo", "cvFileRemoveBtn", "CV"));
+jdFileInput.addEventListener("change", () => handleFileSelection(jdFileInput, "jdFileInfo", "jdFileRemoveBtn", "job description"));
+if (cvFileRemoveBtn) {
+  cvFileRemoveBtn.addEventListener("click", () => removeSelectedFile(cvFileInput, "cvFileInfo", "cvFileRemoveBtn"));
+}
+if (jdFileRemoveBtn) {
+  jdFileRemoveBtn.addEventListener("click", () => removeSelectedFile(jdFileInput, "jdFileInfo", "jdFileRemoveBtn"));
+}
 cvTextArea.addEventListener("input", updateSubmitButton);
+jdTextArea.addEventListener("input", updateSubmitButton);
 
 // Ctrl+Enter to submit
 cvTextArea.addEventListener("keydown", (e) => {
@@ -275,8 +395,8 @@ async function initApp() {
   const user = await checkAuth();
   updateAuthUI(user);
 
-  // Initialize mode
-  switchMode("text");
+  switchCvMode("text");
+  switchJdMode("text");
 }
 
 // Start the app
